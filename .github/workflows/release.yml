@@ -4,34 +4,35 @@
     4      push:
     5        tags:
     6          - 'v*'
-    7
-    8    permissions:
-    9      contents: write
-   10
-   11    jobs:
-   12      build:
-   13        name: Build Windows Release
-   14        runs-on: windows-latest
-   15
-   16        steps:
-   17          - name: Checkout Repository
-   18            uses: actions/checkout@v4
-   19
-   20          - name: Install Rust Stable
-   21            uses: dtolnay/rust-toolchain@stable
-   22
-   23          - name: Build Release Binaries
-   24            run: cargo build --release
-   25
-   26          - name: Package Artifacts
-   27            run: |
-   28              New-Item -ItemType Directory -Force -Path dist
-   29              Copy-Item target\release\typertask-cli.exe -Destination dist\typertask-next.exe
-   30
-   31          - name: Upload Release Asset
-   32            uses: softprops/action-gh-release@v2
-   33            with:
-   34              files: dist\typertask-next.exe
-   35              generate_release_notes: true
-   36            env:
-   37              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    7      workflow_dispatch:
+    8
+    9    permissions:
+   10      contents: write
+   11
+   12    jobs:
+   13      build:
+   14        name: Build Windows Release
+   15        runs-on: windows-latest
+   16
+   17        steps:
+   18          - name: Checkout Repository
+   19            uses: actions/checkout@v4
+   20
+   21          - name: Install Rust Stable
+   22            uses: dtolnay/rust-toolchain@stable
+   23
+   24          - name: Build Release Binaries
+   25            run: cargo build --release
+   26
+   27          - name: Package Artifacts
+   28            run: |
+   29              New-Item -ItemType Directory -Force -Path dist
+   30              Copy-Item target\release\typertask-cli.exe -Destination dist\typertask-next.exe
+   31
+   32          - name: Upload Release Asset
+   33            uses: softprops/action-gh-release@v2
+   34            with:
+   35              files: dist\typertask-next.exe
+   36              generate_release_notes: true
+   37            env:
+   38              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
