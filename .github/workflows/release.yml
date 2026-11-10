@@ -1,38 +1,38 @@
-    1    name: Release
-    2
-    3    on:
-    4      push:
-    5        tags:
-    6          - 'v*'
-    7      workflow_dispatch:
-    8
-    9    permissions:
-   10      contents: write
+name: Release
+
+on:
+  push:
+    tags:
+     - 'v*'
+  workflow_dispatch:
+    
+permissions:
+  contents: write
    11
-   12    jobs:
-   13      build:
-   14        name: Build Windows Release
-   15        runs-on: windows-latest
-   16
-   17        steps:
-   18          - name: Checkout Repository
-   19            uses: actions/checkout@v4
-   20
-   21          - name: Install Rust Stable
-   22            uses: dtolnay/rust-toolchain@stable
-   23
-   24          - name: Build Release Binaries
-   25            run: cargo build --release
-   26
-   27          - name: Package Artifacts
-   28            run: |
-   29              New-Item -ItemType Directory -Force -Path dist
-   30              Copy-Item target\release\typertask-cli.exe -Destination dist\typertask-next.exe
-   31
-   32          - name: Upload Release Asset
-   33            uses: softprops/action-gh-release@v2
-   34            with:
-   35              files: dist\typertask-next.exe
-   36              generate_release_notes: true
-   37            env:
-   38              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+jobs:
+  build:
+   name: Build Windows Release
+   runs-on: windows-latest
+
+   steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        n
+      - name: Install Rust Stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Release Binaries
+        run: cargo build --release
+  
+      - name: Package Artifacts
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          Copy-Item target\release\typertask-cli.exe -Destination dist\typertask-next.exe
+  
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist\typertask-next.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
