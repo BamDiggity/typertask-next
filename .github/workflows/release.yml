@@ -5,29 +5,33 @@
     5        tags:
     6          - 'v*'
     7
-    8    jobs:
-    9      build:
-   10        name: Build Windows Release
-   11        runs-on: windows-latest
-   12
-   13        steps:
-   14          - name: Checkout Repository
-   15            uses: actions/checkout@v4
-   16
-   17          - name: Install Rust Stable
-   18            uses: dtolnay/rust-toolchain@stable
+    8    permissions:
+    9      contents: write
+   10
+   11    jobs:
+   12      build:
+   13        name: Build Windows Release
+   14        runs-on: windows-latest
+   15
+   16        steps:
+   17          - name: Checkout Repository
+   18            uses: actions/checkout@v4
    19
-   20          - name: Build Release Binaries
-   21            run: cargo build --release
+   20          - name: Install Rust Stable
+   21            uses: dtolnay/rust-toolchain@stable
    22
-   23          - name: Package Artifacts
-   24            run: |
-   25              mkdir -p dist
-   26              copy target\release\typertask-cli.exe dist\typertask-next.exe
-   27
-   28          - name: Upload Release Asset
-   29            uses: softprops/action-gh-release@v1
-   30            with:
-   31              files: dist\typertask-next.exe
-   32            env:
-   33              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+   23          - name: Build Release Binaries
+   24            run: cargo build --release
+   25
+   26          - name: Package Artifacts
+   27            run: |
+   28              New-Item -ItemType Directory -Force -Path dist
+   29              Copy-Item target\release\typertask-cli.exe -Destination dist\typertask-next.exe
+   30
+   31          - name: Upload Release Asset
+   32            uses: softprops/action-gh-release@v2
+   33            with:
+   34              files: dist\typertask-next.exe
+   35              generate_release_notes: true
+   36            env:
+   37              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
