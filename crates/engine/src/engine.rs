@@ -13,10 +13,15 @@ pub struct Engine;
 impl Engine {
     pub async fn execute(commands: &[Command]) -> Result<usize, EngineError> {
         let mut executed = 0;
+        let mut typing_delay = 10; // default 10ms per char
+
         for cmd in commands {
             match cmd {
                 Command::Delay(ms) => {
                     sleep(Duration::from_millis(*ms)).await;
+                }
+                Command::Speed(ms) => {
+                    typing_delay = *ms;
                 }
                 Command::Move { x, y } => {
                     #[cfg(windows)]
@@ -103,12 +108,14 @@ impl Engine {
                             unsafe {
                                 windows::Win32::UI::Input::KeyboardAndMouse::SendInput(&inputs, std::mem::size_of::<windows::Win32::UI::Input::KeyboardAndMouse::INPUT>() as i32);
                             }
-                            sleep(Duration::from_millis(10)).await;
+                            if typing_delay > 0 {
+                                sleep(Duration::from_millis(typing_delay)).await;
+                            }
                         }
                     }
                     #[cfg(not(windows))]
                     {
-                        tracing::info!("Mock Type: {}", text);
+                        tracing::info!("Mock Type: {} (delay: {}ms)", text, typing_delay);
                     }
                 }
                 Command::Key(code) => {

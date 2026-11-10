@@ -1,15 +1,19 @@
 use axum::{
     routing::post,
     Json, Router,
+    http::{HeaderMap, StatusCode},
 };
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
-use typertask_engine::{parse_script, Engine};
+use std::collections::HashMap;
+use typertask_engine::{parse_script_with_vars, Engine};
 
 #[derive(Deserialize)]
 pub struct ExecuteRequest {
     script_content: String,
     intent_description: Option<String>,
+    #[serde(default)]
+    variables: HashMap<String, String>,
 }
 
 #[derive(Serialize)]
@@ -25,16 +29,45 @@ pub struct ErrorResponse {
     message: String,
 }
 
+fn verify_auth(headers: &HeaderMap) -> bool {
+    if let Ok(expected_token) = std::env::var("TYPERTASK_AUTH_TOKEN") {
+        if expected_token.is_empty() {
+            return true;
+        }
+        let auth_header = headers.get("Authorization").and_then(|v| v.to_str().ok());
+        if let Some(auth_val) = auth_header {
+            if auth_val.starts_with("Bearer ") {
+                let token = &auth_val[7..];
+                return token == expected_token;
+            }
+        }
+        false
+    } else {
+        true // No token configured, allow open Tailnet access
+    }
+}
+
 pub async fn execute_handler(
+    headers: HeaderMap,
     Json(payload): Json<ExecuteRequest>,
-) -> Result<Json<ExecuteResponse>, (axum::http::StatusCode, Json<ErrorResponse>)> {
+) -> Result<Json<ExecuteResponse>, (StatusCode, Json<ErrorResponse>)> {
+    if !verify_auth(&headers) {
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            Json(ErrorResponse {
+                status: "error".to_string(),
+                message: "Unauthorized: Invalid or missing Bearer token".to_string(),
+            }),
+        ));
+    }
+
     tracing::info!("Received execution request: {:?}", payload.intent_description);
     
-    let commands = match parse_script(&payload.script_content) {
+    let commands = match parse_script_with_vars(&payload.script_content, &payload.variables) {
         Ok(cmds) => cmds,
         Err(e) => {
             return Err((
-                axum::http::StatusCode::BAD_REQUEST,
+                StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
                     status: "error".to_string(),
                     message: e.to_string(),
@@ -47,7 +80,7 @@ pub async fn execute_handler(
         Ok(c) => c,
         Err(e) => {
             return Err((
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
                     status: "error".to_string(),
                     message: e.to_string(),
@@ -68,7 +101,7 @@ pub async fn run_server(bind_addr: &str) -> Result<(), Box<dyn std::error::Error
         .route("/api/v1/execute", post(execute_handler));
 
     let addr: SocketAddr = bind_addr.parse()?;
-    tracing::info!("TyperTask Daemon listening on {}", addr);
+    tracing::info!("TyperTask Daemon listening on {} (Auth enabled: {})", addr, std::env::var("TYPERTASK_AUTH_TOKEN").is_ok());
     
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     axum::serve(listener, app).await?;

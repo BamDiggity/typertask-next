@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use std::collections::HashMap;
 
 #[derive(Error, Debug)]
 pub enum ParseError {
@@ -12,6 +13,7 @@ pub enum ParseError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Command {
     Delay(u64),
+    Speed(u64),
     Move { x: i32, y: i32 },
     Click { x: Option<i32>, y: Option<i32> },
     Type(String),
@@ -19,13 +21,40 @@ pub enum Command {
     Repeat { count: usize, commands: Vec<Command> },
 }
 
-pub fn parse_script(content: &str) -> Result<Vec<Command>, ParseError> {
+pub fn interpolate_variables(input: &str, vars: &HashMap<String, String>) -> String {
+    let mut result = input.to_string();
+
+    // 1. Interpolate $ENV{VAR_NAME}
+    while let Some(start) = result.find("$ENV{") {
+        if let Some(end) = result[start..].find('}') {
+            let end_idx = start + end;
+            let var_name = &result[start + 5..end_idx];
+            let val = std::env::var(var_name).unwrap_or_default();
+            result.replace_range(start..=end_idx, &val);
+        } else {
+            break;
+        }
+    }
+
+    // 2. Interpolate custom runtime variables $VAR{KEY}
+    for (k, v) in vars {
+        let pattern = format!("$VAR{{{}}}", k);
+        result = result.replace(&pattern, v);
+    }
+
+    result
+}
+
+pub fn parse_script_with_vars(content: &str, vars: &HashMap<String, String>) -> Result<Vec<Command>, ParseError> {
     let mut commands = Vec::new();
     let lines: Vec<&str> = content.lines().collect();
     let mut i = 0;
 
     while i < lines.len() {
-        let line = lines[i].trim();
+        let raw_line = lines[i];
+        let interpolated_line = interpolate_variables(raw_line, vars);
+        let line = interpolated_line.trim();
+
         if line.is_empty() || line.starts_with('#') {
             i += 1;
             continue;
@@ -38,6 +67,13 @@ pub fn parse_script(content: &str) -> Result<Vec<Command>, ParseError> {
             }
             let ms = parts[1].parse().map_err(|_| ParseError::InvalidSyntax { line: i + 1, message: "Invalid duration number".into() })?;
             commands.push(Command::Delay(ms));
+        } else if line.starts_with("SPEED ") {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() < 2 {
+                return Err(ParseError::InvalidSyntax { line: i + 1, message: "Expected ms after SPEED".into() });
+            }
+            let ms = parts[1].parse().map_err(|_| ParseError::InvalidSyntax { line: i + 1, message: "Invalid speed number".into() })?;
+            commands.push(Command::Speed(ms));
         } else if line.starts_with("MOVE ") {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() < 3 {
@@ -95,7 +131,7 @@ pub fn parse_script(content: &str) -> Result<Vec<Command>, ParseError> {
                 i += 1;
             }
             let block_content = block_lines.join("\n");
-            let sub_commands = parse_script(&block_content)?;
+            let sub_commands = parse_script_with_vars(&block_content, vars)?;
             commands.push(Command::Repeat { count, commands: sub_commands });
         } else {
             return Err(ParseError::InvalidSyntax { line: i + 1, message: format!("Unknown command: {}", line) });
@@ -104,4 +140,8 @@ pub fn parse_script(content: &str) -> Result<Vec<Command>, ParseError> {
     }
 
     Ok(commands)
+}
+
+pub fn parse_script(content: &str) -> Result<Vec<Command>, ParseError> {
+    parse_script_with_vars(content, &HashMap::new())
 }
