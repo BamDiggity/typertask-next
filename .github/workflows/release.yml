@@ -1,0 +1,33 @@
+    1    name: Release
+    2
+    3    on:
+    4      push:
+    5        tags:
+    6          - 'v*'
+    7
+    8    jobs:
+    9      build:
+   10        name: Build Windows Release
+   11        runs-on: windows-latest
+   12
+   13        steps:
+   14          - name: Checkout Repository
+   15            uses: actions/checkout@v4
+   16
+   17          - name: Install Rust Stable
+   18            uses: dtolnay/rust-toolchain@stable
+   19
+   20          - name: Build Release Binaries
+   21            run: cargo build --release
+   22
+   23          - name: Package Artifacts
+   24            run: |
+   25              mkdir -p dist
+   26              copy target\release\typertask-cli.exe dist\typertask-next.exe
+   27
+   28          - name: Upload Release Asset
+   29            uses: softprops/action-gh-release@v1
+   30            with:
+   31              files: dist\typertask-next.exe
+   32            env:
+   33              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
