@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use std::fs;
 use typertask_engine::{parse_script, Engine, TextExpander};
 use typertask_daemon::run_server;
+use tracing::info;
 
 #[derive(Parser)]
 #[command(name = "typertask-next")]
@@ -41,11 +42,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("Successfully executed {} commands.", executed);
         }
         Commands::Serve { bind } => {
+            // Optionally start text expander alongside daemon if desired
+            let expander = TextExpander::new();
+            expander.start_hook();
+            info!("TyperTask-Next engine and real-time text expander active.");
             run_server(&bind).await?;
         }
         Commands::Watch => {
             let expander = TextExpander::new();
             expander.start_hook();
+            info!("TyperTask-Next engine and real-time text expander active.");
             println!("TyperTask text expander watcher running. Press Ctrl+C to exit.");
             tokio::signal::ctrl_c().await?;
         }
