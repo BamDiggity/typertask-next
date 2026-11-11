@@ -8,8 +8,9 @@ use tracing::info;
 #[command(name = "typertask-next")]
 #[command(about = "High-performance Windows 11 automation & text expansion engine", version)]
 struct Cli {
+    /// With no subcommand, starts the local API and text expander.
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
@@ -34,21 +35,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Run { file } => {
+        Some(Commands::Run { file }) => {
             let content = fs::read_to_string(&file)?;
             let commands = parse_script(&content)?;
             println!("Executing {} commands from {}", commands.len(), file);
             let executed = Engine::execute(&commands).await?;
             println!("Successfully executed {} commands.", executed);
         }
-        Commands::Serve { bind } => {
-            // Optionally start text expander alongside daemon if desired
-            let expander = TextExpander::new();
-            expander.start_hook();
-            info!("TyperTask-Next engine and real-time text expander active.");
-            run_server(&bind).await?;
-        }
-        Commands::Watch => {
+        Some(Commands::Serve { bind }) => serve(&bind).await?,
+        None => serve("127.0.0.1:8080").await?,
+        Some(Commands::Watch) => {
             let expander = TextExpander::new();
             expander.start_hook();
             info!("TyperTask-Next engine and real-time text expander active.");
@@ -57,5 +53,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    Ok(())
+}
+
+async fn serve(bind: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let expander = TextExpander::new();
+    expander.start_hook();
+    info!("TyperTask-Next engine and real-time text expander active.");
+    println!("TyperTask-Next is running.");
+    println!("API: http://{bind}/api/v1/schema");
+    println!("Leave this window open. Close it to stop.");
+    run_server(bind).await?;
     Ok(())
 }
