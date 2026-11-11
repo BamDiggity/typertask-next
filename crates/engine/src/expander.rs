@@ -11,8 +11,8 @@ use windows::Win32::UI::WindowsAndMessaging::{
 use windows::Win32::Foundation::{LRESULT, WPARAM, LPARAM, HWND};
 #[cfg(windows)]
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, 
-    KEYEVENTF_KEYUP, VK_BACK
+    SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT,
+    KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, VK_BACK, VIRTUAL_KEY
 };
 
 lazy_static::lazy_static! {
@@ -20,7 +20,7 @@ lazy_static::lazy_static! {
         let mut m = HashMap::new();
         m.insert(";email".into(), "nicholas.jacobsen@go/src/cmd/go/testdata/mod/example.com_ambiguous_a_b_v0.0.0-empty.txt".into());
         m.insert(";sig".into(), "Best regards,\nSystems Architecture & Automation".into());
-        m
+        Mutex::new(m)
     };
     static ref BUFFER: Mutex<String> = Mutex::new(String::new());
 }
@@ -52,7 +52,7 @@ impl TextExpander {
 
                     // Message loop required to keep global low-level hook alive
                     let mut msg = windows::Win32::UI::WindowsAndMessaging::MSG::default();
-                    while windows::Win32::UI::WindowsAndMessaging::GetMessageW(&mut msg, HWND(0), 0, 0).as_bool() {
+                    while windows::Win32::UI::WindowsAndMessaging::GetMessageW(&mut msg, HWND(std::ptr::null_mut()), 0, 0).as_bool() {
                         let _ = windows::Win32::UI::WindowsAndMessaging::TranslateMessage(&msg);
                         windows::Win32::UI::WindowsAndMessaging::DispatchMessageW(&msg);
                     }
@@ -108,7 +108,7 @@ unsafe extern "system" fn keyboard_hook_proc(n_code: i32, w_param: WPARAM, l_par
         }
     }
 
-    CallNextHookEx(HHOOK(0), n_code, w_param, l_param)
+    CallNextHookEx(HHOOK(std::ptr::null_mut()), n_code, w_param, l_param)
 }
 
 #[cfg(windows)]
@@ -120,9 +120,9 @@ impl TextExpander {
                 r#type: INPUT_KEYBOARD,
                 Anonymous: INPUT_0 {
                     ki: KEYBDINPUT {
-                        wVk: VK_BACK.0,
+                        wVk: VK_BACK,
                         wScan: 0,
-                        dwFlags: windows::Win32::UI::Input::KeyboardAndMouse::KEYBOARD_EVENT_FLAGS(0),
+                        dwFlags: KEYBD_EVENT_FLAGS(0),
                         time: 0,
                         dwExtraInfo: 0,
                     }
@@ -132,7 +132,7 @@ impl TextExpander {
                 r#type: INPUT_KEYBOARD,
                 Anonymous: INPUT_0 {
                     ki: KEYBDINPUT {
-                        wVk: VK_BACK.0,
+                        wVk: VK_BACK,
                         wScan: 0,
                         dwFlags: KEYEVENTF_KEYUP,
                         time: 0,
@@ -151,7 +151,7 @@ impl TextExpander {
                 r#type: INPUT_KEYBOARD,
                 Anonymous: INPUT_0 {
                     ki: KEYBDINPUT {
-                        wVk: 0,
+                        wVk: VIRTUAL_KEY(0),
                         wScan: c as u16,
                         dwFlags: windows::Win32::UI::Input::KeyboardAndMouse::KEYEVENTF_UNICODE,
                         time: 0,
@@ -163,7 +163,7 @@ impl TextExpander {
                 r#type: INPUT_KEYBOARD,
                 Anonymous: INPUT_0 {
                     ki: KEYBDINPUT {
-                        wVk: 0,
+                        wVk: VIRTUAL_KEY(0),
                         wScan: c as u16,
                         dwFlags: windows::Win32::UI::Input::KeyboardAndMouse::KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
                         time: 0,

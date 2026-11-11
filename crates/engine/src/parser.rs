@@ -93,7 +93,7 @@ pub fn parse_script_with_vars(content: &str, vars: &HashMap<String, String>) -> 
             let y = Some(parts[2].parse().map_err(|_| ParseError::InvalidSyntax { line: i + 1, message: "Invalid y coordinate".into() })?);
             commands.push(Command::Click { x, y });
         } else if line.starts_with("TYPE ") {
-            let text_part = line[5:].trim();
+            let text_part = line[5..].trim();
             if text_part.starts_with('"') && text_part.ends_with('"') && text_part.len() >= 2 {
                 let unquoted = &text_part[1..text_part.len()-1];
                 commands.push(Command::Type(unquoted.to_string()));

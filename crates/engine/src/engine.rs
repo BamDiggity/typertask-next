@@ -84,7 +84,7 @@ impl Engine {
                                     r#type: windows::Win32::UI::Input::KeyboardAndMouse::INPUT_KEYBOARD,
                                     Anonymous: windows::Win32::UI::Input::KeyboardAndMouse::INPUT_0 {
                                         ki: windows::Win32::UI::Input::KeyboardAndMouse::KEYBDINPUT {
-                                            wVk: 0,
+                                            wVk: windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY(0),
                                             wScan: c as u16,
                                             dwFlags: windows::Win32::UI::Input::KeyboardAndMouse::KEYEVENTF_UNICODE,
                                             time: 0,
@@ -96,7 +96,7 @@ impl Engine {
                                     r#type: windows::Win32::UI::Input::KeyboardAndMouse::INPUT_KEYBOARD,
                                     Anonymous: windows::Win32::UI::Input::KeyboardAndMouse::INPUT_0 {
                                         ki: windows::Win32::UI::Input::KeyboardAndMouse::KEYBDINPUT {
-                                            wVk: 0,
+                                            wVk: windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY(0),
                                             wScan: c as u16,
                                             dwFlags: windows::Win32::UI::Input::KeyboardAndMouse::KEYEVENTF_UNICODE | windows::Win32::UI::Input::KeyboardAndMouse::KEYEVENTF_KEYUP,
                                             time: 0,
