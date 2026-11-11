@@ -26,7 +26,7 @@ impl Engine {
                 Command::Move { x, y } => {
                     #[cfg(windows)]
                     unsafe {
-                        windows::Win32::UI::WindowsAndMessaging::SetCursorPos(*x, *y);
+                        let _ = windows::Win32::UI::WindowsAndMessaging::SetCursorPos(*x, *y);
                     }
                     #[cfg(not(windows))]
                     {
@@ -37,7 +37,7 @@ impl Engine {
                     #[cfg(windows)]
                     unsafe {
                         if let (Some(px), Some(py)) = (x, y) {
-                            windows::Win32::UI::WindowsAndMessaging::SetCursorPos(*px, *py);
+                            let _ = windows::Win32::UI::WindowsAndMessaging::SetCursorPos(*px, *py);
                         }
                         use windows::Win32::UI::Input::KeyboardAndMouse::*;
                         let inputs = [
